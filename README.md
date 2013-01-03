@@ -3,6 +3,8 @@ web-clipper
 
 PHP script wich allows you to create dashboard-like page displaying parts from different web pages
 
+Used primarily to scrape luch food data from various restaurant pages. See working demo at http://jklfood.enymind.fi/
+
 #### Using web-clipper ####
 
 `parse.php` handles the parsing itself creating a html-document with specified amount of columns
