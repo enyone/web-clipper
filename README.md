@@ -5,8 +5,8 @@ PHP script wich allows you to create dashboard-like page displaying parts from d
 
 #### Using web-clipper ####
 
-`parser.php` handles the parsing itself creating a html-document with specified amount of columns
-containing one box (div) per. every source page.
+`parse.php` handles the parsing itself creating a html-document with specified amount of columns
+containing one box (div) per. every source page
 
 `config.php` contains all configuration values needed, edit it before usage
 
