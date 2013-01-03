@@ -1,5 +1,13 @@
 <?php
 
+  /** web-clipper
+  * @author Juho Tykkälä, http://www.enymind.fi/
+  * @copyright 2013 Juho Tykkälä
+  * @license http://www.apache.org/licenses/LICENSE-2.0 Apache License, Version 2.0
+  * @license http://www.gnu.org/licenses/gpl-2.0.html GNU General Public License, version 2 (one or other)
+  * @version 1.0.0
+  */
+
   # Require config file and other dependencies
   require_once("config.php");
   require_once("dom.php");

@@ -1,7 +1,10 @@
 <?php
 
-if( !empty( $_REQUEST['username'] ) && $_REQUEST['username'] != 'jklfood' )
-	die('Only for jklfood usage!');
+# Require config file and other dependencies
+require_once("config.php");
+
+if( !empty( $_REQUEST['username'] ) && $_REQUEST['username'] != $config["database.username"] )
+	die('Only for '.$config["database.username"].' usage!');
 
 /** Adminer Editor - Compact database editor
 * @link http://www.adminer.org/
