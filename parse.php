@@ -12,6 +12,7 @@
   require_once("config.php");
   require_once("dom.php");
 
+
   #################################
   # Function definitions
 
@@ -35,49 +36,105 @@
   }
 
   # a_strpos function (find array of needles)
-  function a_strpos( $haystack, $needles )
-  {
+  function a_stripos( $haystack, $needles ) {
     foreach( $needles as $needle )
     {
-      if( strpos( $haystack, $needle ) !== false )
+      if( stripos( $haystack, $needle ) !== false )
         return $needle;
     }
     return false;
   }
 
   # b_trim function (trim also whitespace html entities)
-  function b_trim( $string )
-  {
-    return trim( str_replace( array( "&nbsp;", "&NBSP;" ), "", $string ) );
-  }
-
-  # get_color_bulls function (to add filter markings to content divs)
-  function get_color_bulls( $string, $config, $filters )
-  {
-    $text = "";
-
-    foreach( $filters as $parent => $words )
-    {
-      # If filter-word found in string
-      if( a_strpos( $string, $words ) )
-        $text .= "<span class=\"bull " . $parent . "\">&raquo;</span> ";
-    }
-    
-    # If none of the filters matched and not a price-line
-    if( empty( $text ) && !a_strpos( $string, $config["currencies"] ) )
-      $text .= "<span class=\"bull none\">&raquo;</span> ";
-  
-    return $text;
+  function b_trim( $string ) {
+    return trim( str_replace( array( "&nbsp;", "&NBSP;" ), " ", $string ) );
   }
 
 
   #################################
-  # Code begins
+  # Entity definitions
+
+  class Food {
+    public $description;
+    public $price;
+    public $currency;
+    public $filterMatches;
+    
+    public function __construct() {
+      $this->description = "";
+      $this->price = 0.0;
+      $this->currency = "€";
+      $this->filterMatches = array();
+    }
+    
+    public function addFilterMatch( Filter $filter ) {
+      $this->filterMatches[] = $filter;
+    }
+  }
+  
+  class Filter {
+    public $parent;
+    public $words;
+    
+    public function __construct() {
+      $this->parent = "";
+      $this->words = array();
+    }
+    
+    public function populate($sqlRow) {
+      $this->parent = $sqlRow["parent"];
+      $this->words = explode(",", $sqlRow["words"]);
+    }
+  }
+  
+  class Site {
+    public $name;
+    public $url;
+    public $selector;
+    public $subselector;
+    public $sameline;
+    public $brbreak;
+    public $skip;
+    public $foods;
+    
+    public function __construct() {
+      $this->name = "";
+      $this->url = "";
+      $this->selector = "";
+      $this->subselector = "";
+      $this->sameline = false;
+      $this->brbreak = false;
+      $this->skip = array();
+      $this->foods = array();
+    }
+    
+    public function populate($sqlRow) {
+      $this->name = $sqlRow["name"];
+      $this->url = $sqlRow["url"];
+      $this->selector = $sqlRow["selector"];
+      $this->subselector = $sqlRow["subselector"];
+      $this->sameline = ( $sqlRow["sameline"] ) ? true : false;
+      $this->brbreak = ( $sqlRow["brbreak"] ) ? true : false;
+      $this->skip = explode(" ", $sqlRow["skip"]);
+    }
+    
+    public function addFood( Food $food ) {
+      $this->foods[] = $food;
+    }
+    
+    public function updatePreviousFoodPrice($price) {
+      $this->foods[count($this->foods)-1]->price = $price;
+    }
+  }
+
+
+  #################################
+  # Init code begins
 
   # Initialize database connection
   $conn = mysql_connect($config["database.hostname"],
-			$config["database.username"],
-			$config["database.password"]
+                        $config["database.username"],
+                        $config["database.password"]
   );
 
   # Check if connection made succesfully
@@ -93,24 +150,28 @@
   }
 
   # Query all enabled source sites
-  $sql = "SELECT name, url, selector, subselector, sameline, brbreak FROM sources WHERE enabled = 1 ORDER BY name";
+  $sql = "SELECT name, url, selector, subselector, sameline, brbreak, skip FROM sources WHERE enabled = 1 ORDER BY name";
   $result = mysql_query_and_check($sql, true);
 
   # Fetch and store all source sited from database
   $sites = array();
   while ($row = mysql_fetch_assoc($result)) {
-    $sites[] = $row;
+    $site = new Site();
+    $site->populate($row);
+    $sites[] = $site;
   }
   mysql_free_result($result);
 
   # Query all filters
-  $sql = "SELECT parent, word FROM synonyms ORDER BY parent";
+  $sql = "SELECT parent, GROUP_CONCAT(word) as words FROM synonyms GROUP BY parent ORDER BY parent";
   $result = mysql_query_and_check($sql, false);
 
   # Fetch and store all filters from database
   $filters = array();
   while ($row = mysql_fetch_assoc($result)) {
-    $filters[$row['parent']][] = $row['word'];
+    $filter = new Filter();
+    $filter->populate($row);
+    $filters[] = $filter;
   }
   mysql_free_result($result);
 
@@ -129,7 +190,146 @@
 
 
   #################################
+  # Parsing code begins
+
+  # LOOP
+  foreach( $sites as $siteIndex => $site ) {
+    # Get HTML source from site url
+    $html = file_get_html( $site->url );
+
+    # Find and select desired selector from source
+    $ret = $html->find( $site->selector, 0 );
+
+    if( !empty( $site->subselector ) ) {
+      # If no food data found
+      if( $ret == null )
+        continue;
+
+      $ret = $ret->find( $site->subselector );
+      
+      $first = true;
+      $fetch = false;
+      $previousPrice = "0.0";
+
+      # Loop through separated lines
+      foreach( $ret as $line ) {
+        # Dunno, just works on some pages...
+        if( a_stripos( $line->plaintext, array(0xC4, 0xE4, 0xD6, 0xF6) ) )
+          $utf8Text = utf8_encode( b_trim( preg_replace("/\s+/", " ", $line->plaintext ) ) );
+        else
+          $utf8Text = b_trim( preg_replace("/\s+/", " ", $line->plaintext ) );
+      
+        # Are we trying to separate source lines with br-tag or with subselector
+        if( $site->brbreak ) {
+          # TODO: fix this to separate lines correctly on br-tag
+          $lines = preg_split( "/(\<br(.)\/\>|\<br\>)/", $line->innertext );
+          
+          foreach($lines as $lineIndex => $line)
+            $lines[$lineIndex] = strip_tags($line);
+        }
+        else
+          $lines = array($utf8Text);
+      
+        foreach( $lines as $line ) {
+          $plaintext = $line;
+        
+          # Figure out next weekday number (sunday=0)
+          $nextWDay = date("w") + 1;
+          if( $nextWDay > 6 )
+            $nextWDay = 0;
+
+          # If current weekday found on line, begin fetching..
+          if( strpos( strtolower( $plaintext ), $config["weekdays"][ date("w") ] ) !== false ) {
+            $fetch = true;
+
+            # Do not want to add line representing the current day unless same line includes food data
+            if(!$site->sameline && !isset($_GET["all"]))
+              continue;
+          }
+          # ..and when next weekday is found, end fetching.
+          else if( strpos( strtolower( $plaintext ), $config["weekdays"][ $nextWDay ] ) !== false )
+            $fetch = false;
+          # ..and if on friday and next monday appears (multi-week list)
+          else if( date("w") == 5 && strpos( strtolower( $plaintext ), $config["weekdays"][1] ) !== false )
+            $fetch = false;
+
+          # Continue, if this is something we do not want
+          if( !$fetch && !isset($_GET["all"]) )
+            continue;
+          
+          # Skip unwanted lines
+          if( a_stripos( $plaintext, $site->skip ) )
+            continue;
+            
+          # Tidy string
+          $text = trim( $plaintext );
+          $text = preg_replace("/[^a-zA-Z0-9\s]/", "", $text);
+
+          # Init new food
+          $food = new Food();
+          
+          if( !empty( $text ) ) {
+          
+            # Parse food price
+            $price = "0.0";
+            $currency = $config["currencies"][0];
+            $food->currency = $currency;
+            
+            if( count($config["currencies"]) > 1 ) {
+              foreach($config["currencies"] as $curr)
+                $plaintext = str_replace($curr, $currency, $plaintext);
+            }
+            
+            if( preg_match('/\d+(?:[\.\,]\d+)?(.)\\'.$currency.'/', $plaintext, $matches) ) {
+              $price = str_replace(",", ".", $matches[0]);
+              $plaintext = trim(str_replace($matches[0], "", $plaintext));
+              
+              # If this line includes the price of the previous line
+              if( empty($plaintext) && isset($sites[$siteIndex-1]) ) {
+                $sites[$siteIndex-1]->updatePreviousFoodPrice(floatval($price));
+                continue;
+              }
+            }
+            
+            if( $price == "0.0" )
+              $price = $previousPrice;
+            
+            $food->price = floatval($price);
+            $food->description = $plaintext;
+            
+            foreach( $filters as $filter ) {
+              # If filter-word found in food description
+              if( a_stripos( $food->description, $filter->words ) )
+                $food->addFilterMatch($filter);
+            }
+          }
+          
+          if( !empty($food->description) )
+            $sites[$siteIndex]->addFood($food);
+
+          # Next line is no more the first line
+          $first = false;
+          
+          $previousPrice = $price;
+        }
+      }
+    }
+  }
+
+  if(isset($_GET["json"])) {
+  
+    # Print JSON
+    header("Content-type: application/json; charset=UTF-8");
+    print json_encode($sites);
+    exit();
+  }
+  else {
+
+
+  #################################
   # HTML mixed PHP begins
+  
+  header("Content-type: text/html; charset=UTF-8");
 ?>
 <html>
 <head>
@@ -172,129 +372,91 @@
 <body>
 <?php
 
-# Print header
-print "<h1>".$config["page.title"]."</h1>
-<h3>@ " . date($config["page.dateformat"]) . "</h3>
-<div style=\"margin-left: 10px;\">";
+  # Print header
+  print "<h1>".$config["page.title"]."</h1>
+  <h3>@ " . date($config["page.dateformat"]) . "</h3>
+  <div style=\"margin-left: 10px;\">";
 
-# Print filter buttons
-foreach( $filters as $parent => $words ) {
-  print "<span class=\"bull ".$parent."\" onclick=\"bold('".$parent."');\">".ucfirst($parent)."</span>";
-}
+  # Print filter buttons
+  foreach( $filters as $filter ) {
+    print "<span class=\"bull ".$filter->parent."\" onclick=\"bold('".$filter->parent."');\">".ucfirst($filter->parent)."</span>";
+  }
 
-# Print "all" button
-print "<a href=\"all.html\"><span class=\"bull\">Kaikki</span></a>
-</div>
-<div style=\"clear: both;\"></div>";
+  # Print "all" button
+  print "<a href=\"all.html\"><span class=\"bull\">Kaikki</span></a>
+  </div>
+  <div style=\"clear: both;\"></div>";
 
-# Init looping and columns
-$count = 0;
-$perCol = ceil( count( $sites ) / intval($config["divs.columns"]) );
-print "<div class=\"col\">";
+  # Init looping and columns
+  $count = 0;
+  $perCol = ceil( count( $sites ) / intval($config["divs.columns"]) );
+  print "<div class=\"col\">";
 
-# If shuffle
-if($config["divs.shuffle"])
-  shuffle( $sites );
+  # If shuffle
+  if($config["divs.shuffle"])
+    shuffle( $sites );
 
-# LOOP
-foreach( $sites as $site )
-{
-  if( $count > 0 && $count % $perCol == 0 )
-    print "</div><div class=\"col\">";
+  # LOOP
+  foreach( $sites as $site ) {
   
-  # Box header
-  print "<div class=\"content\">
-	 <div class=\"name\">
-	 <a href=\"" . $site["url"] . "\" target=\"_blank\">" . utf8_encode( $site["name"] ) . "</a>
-	 </div>\n";
-
-  # Get HTML source from site url
-  $html = file_get_html( $site["url"] );
-
-  # Find and select desired selector from source
-  $ret = $html->find( $site["selector"], 0 );
-
-  if( !empty( $site["subselector"] ) )
-  {
-    if( $ret == null )
-    {
-      print "\"<span class=\"error\">" . $site["selector"] . "\" not found!</span></div>";
-      continue;
-    }
-
-    # Are we trying to separate source lines with br-tag or with subselector
-    if( $site["brbreak"] )
-    {
-      # TODO: fix this to separate lines correctly on br-tag
-      $currText = $ret->innertext;
-      $currText = explode( "<br>", $currText );
-    }
-    else
-      $ret = $ret->find( $site["subselector"] );
+    if( $count > 0 && $count % $perCol == 0 )
+      print "</div><div class=\"col\">";
     
+    # Box header
+    print "<div class=\"content\">
+           <div class=\"name\">
+           <a href=\"" . $site->url . "\" target=\"_blank\">" . utf8_encode( $site->name ) . "</a>
+           </div>\n";
+
     $first = true;
-    $fetch = false;
 
     # Loop through separated lines
-    foreach( $ret as $line )
-    {
-      # Dunno, just works on some pages...
-      if( a_strpos( $line->plaintext, array(0xC4, 0xE4, 0xD6, 0xF6) ) )
-        $plaintext = utf8_encode( b_trim( preg_replace("/\s+/", " ", $line->plaintext ) ) );
-      else
-        $plaintext = b_trim( preg_replace("/\s+/", " ", $line->plaintext ) );
-
-      # Figure out next weekday number (sunday=0)
-      $nextWDay = date("w") + 1;
-      if( $nextWDay > 6 )
-        $nextWDay = 0;
-
-      # If current weekday found on line, begin fetching..
-      if( strpos( strtolower( $plaintext ), $config["weekdays"][ date("w") ] ) !== false )
-        $fetch = true;
-      # ..and when next weekday is found, end fetching.
-      else if( strpos( strtolower( $plaintext ), $config["weekdays"][ $nextWDay ] ) !== false )
-        $fetch = false;
-
-      # Continue, if this is something we do not want
-      if( !$fetch && !isset( $_GET["all"] ) )
-        continue;
-
-      $text = trim( $plaintext );
-      $text = preg_replace("/[^a-zA-Z0-9\s]/", "", $text);
-
-      if( !empty( $text ) )
-      {
-        # If line contains one of the weekdays
-        if( $got = a_strpos( strtolower( $plaintext ), $config["weekdays"] ) ) {
-          print ( ( $site["sameline"] ) ? get_color_bulls( strtolower( $plaintext ), $config, $filters ) : "" );
-          print ($first ? "" : "<br />");
-
-          # Print line itself
-          print preg_replace( "/".$got."/", "<b>" . $weekdayStrings[ $got ] . "</b>", strtolower( $plaintext ) );
-          print "<br />\n";
-        }
-        else {
-          print get_color_bulls( strtolower( $plaintext ), $config, $filters );
-
-          # Print line itself
-          print $plaintext;
-          print "<br />\n";
-        }
+    foreach( $site->foods as $food ) {
+    
+      $plaintext = $food->description;
+      
+      # Print filter bulls
+      foreach($food->filterMatches as $filter) {
+        print "<span class=\"bull " . $filter->parent . "\">&raquo;</span> ";
       }
+      
+      if(count($food->filterMatches) == 0)
+        print "<span class=\"bull none\">&raquo;</span> ";
+    
+      # If line contains one of the weekdays
+      if( $got = a_stripos( strtolower( $plaintext ), $config["weekdays"] ) ) {
+        # Print line itself
+        print preg_replace( "/".$got."/", "<b>" . $weekdayStrings[ $got ] . "</b>", strtolower( $plaintext ) );
+      }
+      else {
+        # Print line itself
+        print $plaintext;
+      }
+      
+      if( $food->price > 0 )
+        print " (" . number_format( $food->price, 2) . " " . $food->currency . ")";
+      
+      print "<br />";
 
       # Next line is no more the first line
       $first = false;
     }
+
+    print "</div>\n";
+    $count++;
   }
 
-  print "</div>\n";
-  $count++;
-}
-
-print "</div>";
+  print "</div>";
 
 ?>
 <div style="clear: both;"></div>
 </body>
 </html>
+<?php
+
+  }
+
+  # HTML mixed PHP ends
+  #################################
+
+?>
