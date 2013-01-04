@@ -31,6 +31,7 @@ CREATE TABLE `sources` (
   `url` text NOT NULL,
   `enabled` tinyint(1) NOT NULL DEFAULT '1',
   `name` varchar(64) NOT NULL DEFAULT '',
+  `skip` text NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=MyISAM AUTO_INCREMENT=33 DEFAULT CHARSET=latin1;
 /*!40101 SET character_set_client = @saved_cs_client */;
