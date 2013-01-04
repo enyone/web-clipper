@@ -47,7 +47,7 @@
 
   # b_trim function (trim also whitespace html entities)
   function b_trim( $string ) {
-    return trim( str_replace( array( "&nbsp;", "&NBSP;" ), " ", $string ) );
+    return trim( str_replace( array( "&nbsp;", "&NBSP;", "\t", "\u00a0" ), " ", $string ) );
   }
 
 
@@ -195,7 +195,8 @@
   # LOOP
   foreach( $sites as $siteIndex => $site ) {
     # Get HTML source from site url
-    $html = file_get_html( $site->url );
+    if( !($html = file_get_html( $site->url )) )
+      continue;
 
     # Find and select desired selector from source
     $ret = $html->find( $site->selector, 0 );
@@ -225,7 +226,7 @@
           $lines = preg_split( "/(\<br(.)\/\>|\<br\>)/", $line->innertext );
           
           foreach($lines as $lineIndex => $line)
-            $lines[$lineIndex] = strip_tags($line);
+            $lines[$lineIndex] = b_trim( strip_tags($line) );
         }
         else
           $lines = array($utf8Text);
@@ -405,7 +406,7 @@
     # Box header
     print "<div class=\"content\">
            <div class=\"name\">
-           <a href=\"" . $site->url . "\" target=\"_blank\">" . utf8_encode( $site->name ) . "</a>
+           <a href=\"" . $site->url . "\" target=\"_blank\">" . $site->name . "</a>
            </div>\n";
 
     $first = true;
