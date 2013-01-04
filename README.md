@@ -22,6 +22,10 @@ And for all pages.
 
 `0 6,9-10,13,18 * * * wget -q http://www.page.com/parse.php?all -O /var/www/all.html`
 
+And for json data.
+
+`0 6,9-10,13,18 * * * wget -q http://www.page.com/parse.php?json -O /var/www/index.json`
+
 #### Database schemas ####
 
 Use `*.sql` files to create your database with proper tables.
