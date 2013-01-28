@@ -59,34 +59,34 @@
     public $price;
     public $currency;
     public $filterMatches;
-    
+
     public function __construct() {
       $this->description = "";
       $this->price = 0.0;
       $this->currency = "€";
       $this->filterMatches = array();
     }
-    
+
     public function addFilterMatch( Filter $filter ) {
       $this->filterMatches[] = $filter;
     }
   }
-  
+
   class Filter {
     public $parent;
     public $words;
-    
+
     public function __construct() {
       $this->parent = "";
       $this->words = array();
     }
-    
+
     public function populate($sqlRow) {
       $this->parent = $sqlRow["parent"];
       $this->words = explode(",", $sqlRow["words"]);
     }
   }
-  
+
   class Site {
     public $name;
     public $url;
@@ -96,7 +96,7 @@
     public $brbreak;
     public $skip;
     public $foods;
-    
+
     public function __construct() {
       $this->name = "";
       $this->url = "";
@@ -107,7 +107,7 @@
       $this->skip = array();
       $this->foods = array();
     }
-    
+
     public function populate($sqlRow) {
       $this->name = $sqlRow["name"];
       $this->url = $sqlRow["url"];
@@ -117,11 +117,11 @@
       $this->brbreak = ( $sqlRow["brbreak"] ) ? true : false;
       $this->skip = explode(" ", $sqlRow["skip"]);
     }
-    
+
     public function addFood( Food $food ) {
       $this->foods[] = $food;
     }
-    
+
     public function updatePreviousFoodPrice($price) {
       $this->foods[count($this->foods)-1]->price = $price;
     }
@@ -184,7 +184,7 @@
       $ps = "<span class=\"today\">" . ucfirst( $p ) . "</span>";
     else
       $ps = ucfirst( $p );
-  
+
     $weekdayStrings[$p] = $ps;
   }
 
@@ -207,7 +207,7 @@
         continue;
 
       $ret = $ret->find( $site->subselector );
-      
+
       $first = true;
       $fetch = false;
       $previousPrice = "0.0";
@@ -219,21 +219,21 @@
           $utf8Text = utf8_encode( b_trim( preg_replace("/\s+/", " ", $line->plaintext ) ) );
         else
           $utf8Text = b_trim( preg_replace("/\s+/", " ", $line->plaintext ) );
-      
+
         # Are we trying to separate source lines with br-tag or with subselector
         if( $site->brbreak ) {
           # TODO: fix this to separate lines correctly on br-tag
           $lines = preg_split( "/(\<br(.)\/\>|\<br\>)/", $line->innertext );
-          
+
           foreach($lines as $lineIndex => $line)
             $lines[$lineIndex] = b_trim( strip_tags($line) );
         }
         else
           $lines = array($utf8Text);
-      
+
         foreach( $lines as $line ) {
           $plaintext = $line;
-        
+
           # Figure out next weekday number (sunday=0)
           $nextWDay = date("w") + 1;
           if( $nextWDay > 6 )
@@ -257,60 +257,60 @@
           # Continue, if this is something we do not want
           if( !$fetch && !isset($_GET["all"]) )
             continue;
-          
+
           # Skip unwanted lines
           if( a_stripos( $plaintext, $site->skip ) )
             continue;
-            
+
           # Tidy string
           $text = trim( $plaintext );
           $text = preg_replace("/[^a-zA-Z0-9\s]/", "", $text);
 
           # Init new food
           $food = new Food();
-          
+
           if( !empty( $text ) ) {
-          
+
             # Parse food price
             $price = "0.0";
             $currency = $config["currencies"][0];
             $food->currency = $currency;
-            
+
             if( count($config["currencies"]) > 1 ) {
               foreach($config["currencies"] as $curr)
                 $plaintext = str_replace($curr, $currency, $plaintext);
             }
-            
+
             if( preg_match('/\d+(?:[\.\,]\d+)?(.)\\'.$currency.'/', $plaintext, $matches) ) {
               $price = str_replace(",", ".", $matches[0]);
               $plaintext = trim(str_replace($matches[0], "", $plaintext));
-              
+
               # If this line includes the price of the previous line
               if( empty($plaintext) && isset($sites[$siteIndex-1]) ) {
                 $sites[$siteIndex-1]->updatePreviousFoodPrice(floatval($price));
                 continue;
               }
             }
-            
+
             if( $price == "0.0" )
               $price = $previousPrice;
-            
+
             $food->price = floatval($price);
             $food->description = $plaintext;
-            
+
             foreach( $filters as $filter ) {
               # If filter-word found in food description
               if( a_stripos( $food->description, $filter->words ) )
                 $food->addFilterMatch($filter);
             }
           }
-          
+
           if( !empty($food->description) )
             $sites[$siteIndex]->addFood($food);
 
           # Next line is no more the first line
           $first = false;
-          
+
           $previousPrice = $price;
         }
       }
@@ -318,7 +318,7 @@
   }
 
   if(isset($_GET["json"])) {
-  
+
     # Print JSON
     header("Content-type: application/json; charset=UTF-8");
     print json_encode($sites);
@@ -329,69 +329,76 @@
 
   #################################
   # HTML mixed PHP begins
-  
+
   header("Content-type: text/html; charset=UTF-8");
 ?>
+<!DOCTYPE html>
 <html>
 <head>
-<META http-equiv="Content-Type" content="text/html; charset=UTF-8" />
-<title><?php print $config["page.title"]." - " . date($config["page.dateformat"]); ?></title>
-<link rel="stylesheet" type="text/css" href="style.css" />
-<script type="text/javascript">
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><?php print $config["page.title"]." - " . date($config["page.dateformat"]); ?></title>
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <link rel="stylesheet" type="text/css" href="jquery.mobile.css">
+  <script type="text/JavaScript" src="jquery.js"></script>
+  <script type="text/JavaScript" src="jquery.mobile.js"></script>
+  <script type="text/javascript">
 
-  // Google analytics
-  var _gaq = _gaq || [];
-  _gaq.push(['_setAccount', '<?php print $config["googleanalytics.acc"] ?>']);
-  _gaq.push(['_trackPageview']);
+    // Google analytics
+    var _gaq = _gaq || [];
+    _gaq.push(['_setAccount', '<?php print $config["googleanalytics.acc"] ?>']);
+    _gaq.push(['_trackPageview']);
 
-  // Google analytics
-  (function() {
-    var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
-    ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
-    var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
-  })();
+    // Google analytics
+    (function() {
+      var ga = document.createElement('script'); ga.type = 'text/javascript'; ga.async = true;
+      ga.src = ('https:' == document.location.protocol ? 'https://ssl' : 'http://www') + '.google-analytics.com/ga.js';
+      var s = document.getElementsByTagName('script')[0]; s.parentNode.insertBefore(ga, s);
+    })();
 
-  // Function to emphasize correspondeing div when filter clicked
-  var prevFood = "";
-  function bold( food )
-  {
-    $("span.bull").each( function() { $(this).parent().removeClass("em"); } );
-    $("span.bull").each( function() { $(this).removeClass("em"); } );
-    if( food != prevFood )
-    {
-      $("span."+food).parent().addClass("em");
-      $("span."+food).addClass("em");
-      prevFood = food;
+    // Function to emphasize correspondeing div when filter clicked
+    var prevFood = "";
+    function bold( food ) {
+      $("div.none").each( function() { $(this).trigger('collapse'); } );
+      if( food != prevFood ) {
+        $("p."+food).each( function() { $(this).parent().trigger('expand'); } );
+        prevFood = food;
+      }
+      else
+        prevFood = "";
     }
-    else
-      prevFood = "";
-  }
 
-</script>
-<script type="text/JavaScript" src="jquery.js"></script> 
+    function all() {
+      $("div.none").each( function() { $(this).trigger('expand'); } );
+      prevFood = "";
+    }
+
+  </script>
 </head>
 <body>
+<div data-role="page">
 <?php
 
   # Print header
-  print "<h1>".$config["page.title"]."</h1>
-  <h3>@ " . date($config["page.dateformat"]) . "</h3>
-  <div style=\"margin-left: 10px;\">";
+  print "<div data-role=\"header\"><h1>".$config["page.title"];
+  print "@ " . date($config["page.dateformat"]) . "</h1></div>";
+  
+  print "<div style=\"margin-left: 10px; text-align: center; clear: both\">";
 
   # Print filter buttons
   foreach( $filters as $filter ) {
-    print "<span class=\"bull ".$filter->parent."\" onclick=\"bold('".$filter->parent."');\">".ucfirst($filter->parent)."</span>";
+    print "<button data-inline=\"true\" data-icon=\"check\" class=\"bull ".$filter->parent."\" onclick=\"bold('".$filter->parent."');\">".ucfirst($filter->parent)."</button>";
   }
 
   # Print "all" button
-  print "<a href=\"all.html\"><span class=\"bull\">Kaikki</span></a>
-  </div>
-  <div style=\"clear: both;\"></div>";
+  print "<button href=\"all.html\" data-inline=\"true\" data-icon=\"star\" onclick=\"all();\">Kaikki</button></div>";
 
   # Init looping and columns
-  $count = 0;
+  $JQMColDiv = array( 2 => "a", 3 => "b", 4 => "c", 5 => "d" );
+  $JQMColCla = array( 1 => "a", 2 => "b", 3 => "c", 4 => "d", 5 => "e" );
+  $count = 1;
   $perCol = ceil( count( $sites ) / intval($config["divs.columns"]) );
-  print "<div class=\"col\">";
+  print "<div class=\"ui-grid-" . $JQMColDiv[$config["divs.columns"]] . "\">";
 
   # If shuffle
   if($config["divs.shuffle"])
@@ -400,31 +407,25 @@
   # LOOP
   foreach( $sites as $site ) {
   
-    if( $count > 0 && $count % $perCol == 0 )
-      print "</div><div class=\"col\">";
-    
     # Box header
-    print "<div class=\"content\">
-           <div class=\"name\">
-           <a href=\"" . $site->url . "\" target=\"_blank\">" . $site->name . "</a>
-           </div>\n";
+    print "<div class=\"ui-block-" . $JQMColCla[$count] . "\">";
+    print "<div class=\"none\" data-role=\"collapsible\" data-content-theme=\"c\" data-collapsed=\"true\" data-theme=\"b\">";
+    print "<h3>" . $site->name . "</h3>\n";
 
     $first = true;
 
     # Loop through separated lines
     foreach( $site->foods as $food ) {
-    
-      $plaintext = $food->description;
-      
-      # Print filter bulls
+
+      $filterClasses = "";
       foreach($food->filterMatches as $filter) {
-        print "<span class=\"bull " . $filter->parent . "\">&raquo;</span> ";
+        $filterClasses .= " " . $filter->parent;
       }
-      
-      if(count($food->filterMatches) == 0)
-        print "<span class=\"bull none\">&raquo;</span> ";
-    
-      # If line contains one of the weekdays
+
+      print "<p class=\"" . $filterClasses . "\">";
+
+      $plaintext = $food->description;
+
       if( $got = a_stripos( strtolower( $plaintext ), $config["weekdays"] ) ) {
         # Print line itself
         print preg_replace( "/".$got."/", "<b>" . $weekdayStrings[ $got ] . "</b>", strtolower( $plaintext ) );
@@ -433,24 +434,27 @@
         # Print line itself
         print $plaintext;
       }
-      
+
       if( $food->price > 0 )
         print " (" . number_format( $food->price, 2) . " " . $food->currency . ")";
-      
-      print "<br />";
+
+      print "</p>";
 
       # Next line is no more the first line
       $first = false;
     }
 
-    print "</div>\n";
+    print "<a style=\"float: right; top: -11px;\" href=\"" . $site->url . "\" data-mini=\"true\" data-icon=\"arrow-r\" data-role=\"button\" data-iconpos=\"right\" data-inline=\"true\">" . $site->name . "</a></div></div>\n";
     $count++;
+
+    if( $count > $config["divs.columns"] )
+      $count = 1;
   }
 
   print "</div>";
 
 ?>
-<div style="clear: both;"></div>
+</div>
 </body>
 </html>
 <?php
