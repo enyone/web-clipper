@@ -391,7 +391,7 @@
   }
 
   # Print "all" button
-  print "<button href=\"all.html\" data-inline=\"true\" data-icon=\"star\" onclick=\"all();\">Kaikki</button></div>";
+  print "<button data-inline=\"true\" data-icon=\"star\" onclick=\"all();\">Kaikki</button></div>";
 
   # Init looping and columns
   $JQMColDiv = array( 2 => "a", 3 => "b", 4 => "c", 5 => "d" );
