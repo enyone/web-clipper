@@ -340,8 +340,8 @@
   <title><?php print $config["page.title"]." - " . date($config["page.dateformat"]); ?></title>
   <link rel="stylesheet" type="text/css" href="style.css" />
   <link rel="stylesheet" type="text/css" href="jquery.mobile.css">
-  <script type="text/JavaScript" src="jquery.js"></script>
-  <script type="text/JavaScript" src="jquery.mobile.js"></script>
+  <script type="text/javascript" src="jquery.js"></script>
+  <script type="text/javascript" src="jquery.mobile.js"></script>
   <script type="text/javascript">
 
     // Google analytics
@@ -368,11 +368,6 @@
         prevFood = "";
     }
 
-    function all() {
-      $("div.none").each( function() { $(this).trigger('expand'); } );
-      prevFood = "";
-    }
-
   </script>
 </head>
 <body>
@@ -381,17 +376,17 @@
 
   # Print header
   print "<div data-role=\"header\"><h1>".$config["page.title"];
-  print "@ " . date($config["page.dateformat"]) . "</h1></div>";
+  print " @ " . date($config["page.dateformat"]) . "</h1></div>\n";
   
-  print "<div style=\"margin-left: 10px; text-align: center; clear: both\">";
+  print "<div style=\"margin-left: 10px; text-align: center; clear: both\">\n";
 
   # Print filter buttons
   foreach( $filters as $filter ) {
-    print "<button data-inline=\"true\" data-icon=\"check\" class=\"bull ".$filter->parent."\" onclick=\"bold('".$filter->parent."');\">".ucfirst($filter->parent)."</button>";
+    print "<button data-inline=\"true\" data-icon=\"check\" class=\"bull ".$filter->parent."\" onclick=\"bold('".$filter->parent."');\">".ucfirst($filter->parent)."</button>\n";
   }
 
   # Print "all" button
-  print "<button data-inline=\"true\" data-icon=\"star\" onclick=\"all();\">Kaikki</button></div>";
+  print "<button data-inline=\"true\" data-icon=\"star\" onclick=\"bold('all');\">Kaikki</button></div>\n";
 
   # Init looping and columns
   $JQMColDiv = array( 2 => "a", 3 => "b", 4 => "c", 5 => "d" );
@@ -422,7 +417,7 @@
         $filterClasses .= " " . $filter->parent;
       }
 
-      print "<p class=\"" . $filterClasses . "\">";
+      print "<p class=\"all " . $filterClasses . "\">";
 
       $plaintext = $food->description;
 
