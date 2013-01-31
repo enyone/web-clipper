@@ -47,7 +47,7 @@
 
   # b_trim function (trim also whitespace html entities)
   function b_trim( $string ) {
-    return trim( str_replace( array( "&nbsp;", "&NBSP;", "\t", "\u00a0" ), " ", $string ) );
+    return trim( str_replace( array( "&nbsp;", "&NBSP;", "\t", "\\u00a0" ), " ", $string ) );
   }
 
 
