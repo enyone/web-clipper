@@ -8,6 +8,13 @@
   * @version 1.0.0
   */
 
+  # Prevent direct
+  if(!isset($_GET["force"]))
+  {
+    header("Location: /");
+    die();
+  }
+
   # Require config file and other dependencies
   require_once("config.php");
   require_once("dom.php");
@@ -402,9 +409,14 @@
   # LOOP
   foreach( $sites as $site ) {
   
+    # Is collapsed
+    $isCollapsed = "true";
+    if(isset($_GET["uncollapsed"]))
+      $isCollapsed = "false";
+  
     # Box header
     print "<div class=\"ui-block-" . $JQMColCla[$count] . "\">";
-    print "<div class=\"none\" data-role=\"collapsible\" data-content-theme=\"c\" data-collapsed=\"true\" data-theme=\"b\">";
+    print "<div class=\"none\" data-role=\"collapsible\" data-content-theme=\"c\" data-collapsed=\"" . $isCollapsed . "\" data-theme=\"b\">";
     print "<h3>" . $site->name . "</h3>\n";
 
     $first = true;
