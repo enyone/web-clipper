@@ -482,7 +482,7 @@ var noResponse = 'No response from server.';
 <script type="text/javascript" src="<?php echo
 h(preg_replace("~\\?.*~","",ME))."?file=functions.js&amp;version=3.3.4",'"></script>
 ';if($b->head()){echo'<link rel="shortcut icon" type="image/x-icon" href="',h(preg_replace("~\\?.*~","",ME))."?file=favicon.ico&amp;version=3.3.4",'" id="favicon">
-';if(file_exists("adminer.css")){echo'<link rel="stylesheet" type="text/css" href="adminer.css">
+';if(file_exists("css/adminer.css")){echo'<link rel="stylesheet" type="text/css" href="css/adminer.css">
 ';}}echo'
 <body class="ltr nojs"',($_POST?"":" onclick=\"return bodyClick(event, '".h(js_escape(DB)."', '".js_escape($_GET["ns"]))."');\"");echo' onkeydown="bodyKeydown(event);" onload="bodyLoad(\'',(is_object($f)?substr($f->server_info,0,3):""),'\');',(isset($_COOKIE["adminer_version"])?"":" verifyVersion();"),'">
 <script type="text/javascript">

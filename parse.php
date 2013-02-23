@@ -17,7 +17,7 @@
 
   # Require config file and other dependencies
   require_once("config.php");
-  require_once("dom.php");
+  require_once("lib/dom.php");
 
 
   #################################
@@ -345,10 +345,10 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php print $config["page.title"]." - " . date($config["page.dateformat"]); ?></title>
-  <link rel="stylesheet" type="text/css" href="jquery.mobile.css">
-  <link rel="stylesheet" type="text/css" href="style.css" />
-  <script type="text/javascript" src="jquery.js"></script>
-  <script type="text/javascript" src="jquery.mobile.js"></script>
+  <link rel="stylesheet" type="text/css" href="css/jquery.mobile.css">
+  <link rel="stylesheet" type="text/css" href="css/style.css" />
+  <script type="text/javascript" src="js/jquery.js"></script>
+  <script type="text/javascript" src="js/jquery.mobile.js"></script>
   <script type="text/javascript">
 
     // Google analytics
