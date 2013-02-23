@@ -345,8 +345,8 @@
   <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><?php print $config["page.title"]." - " . date($config["page.dateformat"]); ?></title>
-  <link rel="stylesheet" type="text/css" href="style.css" />
   <link rel="stylesheet" type="text/css" href="jquery.mobile.css">
+  <link rel="stylesheet" type="text/css" href="style.css" />
   <script type="text/javascript" src="jquery.js"></script>
   <script type="text/javascript" src="jquery.mobile.js"></script>
   <script type="text/javascript">
@@ -382,8 +382,8 @@
 <?php
 
   # Print header
-  print "<div data-role=\"header\"><h1>".$config["page.title"];
-  print " @ " . date($config["page.dateformat"]) . "</h1></div>\n";
+  print "<div data-role=\"header\"><a href=\"http://www.enymind.fi\" data-icon=\"arrow-l\" data-theme=\"d\" data-prefetch>Enymind</a><h1>".$config["page.title"];
+  print " @ " . date($config["page.dateformat"]) . "</h1><a href=\"https://github.com/enyone/web-clipper\" data-icon=\"arrow-r\" data-theme=\"b\" data-iconpos=\"right\" data-prefetch>GitHub</a></div>\n";
   
   print "<div style=\"margin-left: 10px; text-align: center; clear: both\">\n";
 
@@ -400,7 +400,7 @@
   $JQMColCla = array( 1 => "a", 2 => "b", 3 => "c", 4 => "d", 5 => "e" );
   $count = 1;
   $perCol = ceil( count( $sites ) / intval($config["divs.columns"]) );
-  print "<div class=\"ui-grid-" . $JQMColDiv[$config["divs.columns"]] . "\">";
+  print "<div class=\"ui-grid-" . $JQMColDiv[$config["divs.columns"]] . " my-breakpoint\">";
 
   # If shuffle
   if($config["divs.shuffle"])
