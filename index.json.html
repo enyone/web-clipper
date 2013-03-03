@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" type="text/css" href="css/jquery.mobile.css">
+  <link rel="stylesheet" type="text/css" href="css/style.css" />
+  <link rel="stylesheet" type="text/css" href="css/prettify.css" />
+  <script type="text/javascript" src="js/jquery.js"></script>
+  <script type="text/javascript" src="js/jquery.mobile.js"></script>
+  <script type="text/javascript" src="js/prettify.js"></script>
+  <script type="text/javascript">
+    $(document).ready(function(){
+      $.ajax({
+        url: "index.json",
+        dataType: "json"
+      }).done(function(data){
+        $(".prettyprint").html("// Use index.json (not .html) when retrieving data\n\nvar json = " + JSON.stringify(data, null, 4) + ";");
+      }).done(function(){
+        prettyPrint();
+      });
+    });
+  </script>
+</head>
+<body>
+
+<div data-role="page" id="page-json">
+  <div data-role="header"><a href="/" data-icon="arrow-l" data-theme="d">Takaisin</a><h1></h1></div>
+  <pre class="prettyprint linenums:1" style="border: 0;"></pre>
+</div>
+
+</body>
+</html>

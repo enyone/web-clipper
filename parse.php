@@ -347,8 +347,10 @@
   <title><?php print $config["page.title"]." - " . date($config["page.dateformat"]); ?></title>
   <link rel="stylesheet" type="text/css" href="css/jquery.mobile.css">
   <link rel="stylesheet" type="text/css" href="css/style.css" />
+  <link rel="stylesheet" type="text/css" href="css/prettify.css" />
   <script type="text/javascript" src="js/jquery.js"></script>
   <script type="text/javascript" src="js/jquery.mobile.js"></script>
+  <script type="text/javascript" src="js/prettify.js"></script>
   <script type="text/javascript">
 
     // Google analytics
@@ -374,6 +376,17 @@
       else
         prevFood = "";
     }
+    
+    $(document).delegate('#page-json', 'pageshow', function(){
+      $.ajax({
+        url: "index.json",
+        dataType: "json"
+      }).done(function(data){
+        $(".prettyprint").html("// Use index.json (not .html) when retrieving data\n\nvar json = " + JSON.stringify(data, null, 4) + ";");
+      }).done(function(){
+        prettyPrint();
+      });
+    });
 
   </script>
 </head>
@@ -382,19 +395,32 @@
 <?php
 
   # Print header
-  print "<div data-role=\"header\"><a href=\"http://www.enymind.fi\" data-icon=\"arrow-l\" data-theme=\"d\" data-prefetch>Enymind</a><h1>".$config["page.title"];
-  print " @ " . date($config["page.dateformat"]) . "</h1><a href=\"https://github.com/enyone/web-clipper\" data-icon=\"arrow-r\" data-theme=\"b\" data-iconpos=\"right\" data-prefetch>GitHub</a></div>\n";
+  print "<div data-role=\"header\" id=\"page-index\">"
+          . "<a href=\"http://www.enymind.fi\" data-icon=\"arrow-l\" data-theme=\"d\">Enymind</a>"
+          . "<div data-role=\"controlgroup\" data-type=\"horizontal\" style=\"margin-left: 110px; margin-top: 4px; position: absolute;\">"
+          . "<a href=\"index.json.html\" data-icon=\"arrow-r\" data-theme=\"c\" data-role=\"button\" data-iconpos=\"right\">load as JSON</a>"
+          . "</div><h1>";
+          
+  print $config["page.title"];
   
+  print " @ " . date($config["page.dateformat"])
+          . "</h1>";
+          
+  print "<a href=\"https://github.com/enyone/web-clipper\" data-icon=\"arrow-r\" data-theme=\"b\" data-iconpos=\"right\">"
+          . "GitHub</a></div>\n";
+  
+  # Print filter buttons
   print "<div style=\"margin-left: 10px; text-align: center; clear: both\">\n";
 
-  # Print filter buttons
   foreach( $filters as $filter ) {
-    print "<button data-inline=\"true\" data-icon=\"check\" class=\"bull ".$filter->parent."\" onclick=\"bold('".$filter->parent."');\">".ucfirst($filter->parent)."</button>\n";
+    print "<button data-inline=\"true\" data-icon=\"check\" class=\"bull ".$filter->parent
+            . "\" onclick=\"bold('".$filter->parent."');\">".ucfirst($filter->parent)."</button>\n";
   }
 
   # Print "all" button
   print "<button data-inline=\"true\" data-icon=\"star\" onclick=\"bold('all');\">Kaikki</button></div>\n";
 
+  # Print content
   # Init looping and columns
   $JQMColDiv = array( 2 => "a", 3 => "b", 4 => "c", 5 => "d" );
   $JQMColCla = array( 1 => "a", 2 => "b", 3 => "c", 4 => "d", 5 => "e" );
@@ -416,7 +442,8 @@
   
     # Box header
     print "<div class=\"ui-block-" . $JQMColCla[$count] . "\">";
-    print "<div class=\"none\" data-role=\"collapsible\" data-content-theme=\"c\" data-collapsed=\"" . $isCollapsed . "\" data-theme=\"b\">";
+    print "<div class=\"none\" data-role=\"collapsible\" data-content-theme=\"c\" data-collapsed=\""
+            . $isCollapsed . "\" data-theme=\"b\">";
     print "<h3>" . $site->name . "</h3>\n";
 
     $first = true;
@@ -451,7 +478,10 @@
       $first = false;
     }
 
-    print "<a style=\"float: right; top: -11px;\" href=\"" . $site->url . "\" data-mini=\"true\" data-icon=\"arrow-r\" data-role=\"button\" data-iconpos=\"right\" data-inline=\"true\">" . $site->name . "</a></div></div>\n";
+    print "<a style=\"float: right; top: -11px;\" href=\"" . $site->url . "\" data-mini=\"true\" "
+            . "data-icon=\"arrow-r\" data-role=\"button\" data-iconpos=\"right\" data-inline=\"true\">"
+            . $site->name . "</a></div></div>\n";
+            
     $count++;
 
     if( $count > $config["divs.columns"] )
