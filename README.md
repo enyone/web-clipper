@@ -18,9 +18,6 @@ Add an entry to your crontab to generate a static html page periodically.
 
 `0 6,9-10,13,18 * * * wget -q http://www.page.com/parse.php?force -O /var/www/index.html`
 
-And for all pages.
-
-`0 6,9-10,13,18 * * * wget -q http://www.page.com/parse.php?force&all -O /var/www/all.html`
 
 And for json data.
 
