@@ -398,7 +398,7 @@
   print "<div data-role=\"header\" id=\"page-index\">"
           . "<a href=\"http://www.enymind.fi\" data-icon=\"arrow-l\" data-theme=\"d\">Enymind</a>"
           . "<div data-role=\"controlgroup\" data-type=\"horizontal\" style=\"margin-left: 110px; margin-top: 4px; position: absolute;\">"
-          . "<a href=\"index.json.html\" data-icon=\"arrow-r\" data-theme=\"c\" data-role=\"button\" data-iconpos=\"right\">load as JSON</a>"
+          . "<a href=\"index.json.html\" data-icon=\"arrow-r\" class=\"hide-on-narrow\" data-theme=\"c\" data-role=\"button\" data-iconpos=\"right\">load as JSON</a>"
           . "</div><h1>";
           
   print $config["page.title"];
